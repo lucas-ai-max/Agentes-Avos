@@ -6,28 +6,29 @@
   "scripts": {
     "dev": "mastra dev",
     "build": "tsc",
-    "start": "node dist/index.js",
-    "webhook": "npx ts-node src/server.ts",
+    "start": "node dist/src/server.js",
+    "webhook": "tsx --env-file=.env src/server.ts",
+    "webhook:prod": "node --env-file=.env dist/src/server.js",
 
-    "find-ids": "npx ts-node scripts/find-crm-ids.ts",
-    "test:api": "npx ts-node scripts/test-api.ts",
+    "find-ids": "tsx --env-file=.env scripts/find-crm-ids.ts",
+    "test:api": "tsx --env-file=.env scripts/test-api.ts",
 
-    "pause": "npx ts-node scripts/pause-agent.ts",
-    "resume": "npx ts-node scripts/resume-agent.ts",
-    "paused": "npx ts-node scripts/pause-agent.ts --list",
-    "test:hitl": "npx ts-node scripts/test-agent-control.ts",
-    "test:routing": "npx ts-node scripts/test-routing.ts",
+    "pause": "tsx --env-file=.env scripts/pause-agent.ts",
+    "resume": "tsx --env-file=.env scripts/resume-agent.ts",
+    "paused": "tsx --env-file=.env scripts/pause-agent.ts --list",
+    "test:hitl": "tsx --env-file=.env scripts/test-agent-control.ts",
+    "test:routing": "tsx --env-file=.env scripts/test-routing.ts",
 
-    "setup:socialia": "npx ts-node scripts/setup-socialia.ts",
-    "setup:sessao": "npx ts-node scripts/setup-sessao.ts",
+    "setup:socialia": "tsx --env-file=.env scripts/setup-socialia.ts",
+    "setup:sessao": "tsx --env-file=.env scripts/setup-sessao.ts",
     "setup:all": "npm run setup:socialia && npm run setup:sessao",
 
-    "test:meta-flow": "npx ts-node scripts/test-meta-flow.ts",
-    "test:meta-token": "npx ts-node scripts/test-meta-token.ts",
-    "check:meta": "npx ts-node scripts/check-meta-config.ts",
+    "test:meta-flow": "tsx --env-file=.env scripts/test-meta-flow.ts",
+    "test:meta-token": "tsx --env-file=.env scripts/test-meta-token.ts",
+    "check:meta": "tsx --env-file=.env scripts/check-meta-config.ts",
 
-    "google:auth": "npx ts-node scripts/get-google-refresh-token.ts",
-    "test:calendar": "npx ts-node scripts/test-google-calendar.ts"
+    "google:auth": "tsx --env-file=.env scripts/get-google-refresh-token.ts",
+    "test:calendar": "tsx --env-file=.env scripts/test-google-calendar.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",
@@ -47,6 +48,7 @@
   "devDependencies": {
     "@types/node": "^22.15.3",
     "mastra": "^1.6.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.8.3"
   }
 }
