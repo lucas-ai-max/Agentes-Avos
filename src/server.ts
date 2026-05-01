@@ -26,6 +26,7 @@ import { setIgsidCache as cacheSocialia } from '../lib/socialia/igsidCacheClient
 import { setIgsidCache as cacheSessao } from '../lib/sessao/igsidCacheClient.js';
 import { pauseAgentFor as pauseSocialia } from '../lib/socialia/agentControlClient.js';
 import { pauseAgentFor as pauseSessao } from '../lib/sessao/agentControlClient.js';
+import { bufferIncomingMessage, cancelBuffer, getBufferStats } from '../lib/shared/messageBuffer.js';
 
 const HUMAN_TAKEOVER_PAUSE_MS = Number(
   process.env.HUMAN_TAKEOVER_PAUSE_MS ?? 24 * 60 * 60 * 1000,
@@ -237,6 +238,10 @@ async function processPayload(payload: any): Promise<void> {
               console.warn(`⚠️  populateCache (echo) falhou:`, err.message),
             );
           }
+          // Cancela buffer pendente — se humano assumiu, não responder 30s depois
+          if (cancelBuffer(leadIgsid)) {
+            console.log(`   └─ buffer pendente cancelado (humano assumiu)`);
+          }
           // Se o lead nao esta em nenhuma whitelist, pausa em ambos schemas
           // (cinto-suspensorio: garantia de silencio se o humano assumir).
           const targets = decision.agent === 'sessao'
@@ -275,28 +280,41 @@ async function processPayload(payload: any): Promise<void> {
 
         console.log(`📨 [${username}] (${igsid}): ${text}`);
 
-        const result = await routeAndProcess({
-          instagram_username: username,
-          igsid,
-          message: text,
-          thread_id: threadId,
-        });
-
+        // Popula cache imediatamente (não depende do buffer) — assim mensagens
+        // subsequentes não rechamam Meta API enquanto o buffer espera.
         if (resolved.needsCachePopulation) {
-          await populateCacheForAgent(result.agent, igsid, username).catch((err) =>
+          const decision = await pickAgent(username);
+          await populateCacheForAgent(decision.agent, igsid, username).catch((err) =>
             console.warn(`⚠️  populateCache falhou:`, err.message),
           );
         }
 
-        const agentLabel = result.agent ?? 'nenhum';
-        if (result.shouldSend && result.message) {
-          const chunkCount = await sendChunkedMessage(igsid, result.message);
-          console.log(
-            `📤 [${username}] (${agentLabel}, ${chunkCount} chunks): ${result.message.slice(0, 80)}...`,
-          );
-        } else {
-          console.log(`⏭️  [${username}] (${agentLabel}) skip: ${result.skipReason}`);
-        }
+        // Adiciona ao buffer de 30s. Se já há buffer ativo, reseta o timer
+        // e empilha. O flush roda routeAndProcess uma vez só com tudo junto.
+        bufferIncomingMessage(igsid, text, async (combinedMessage, count) => {
+          if (count > 1) {
+            console.log(
+              `📦 [${username}] flush buffer com ${count} mensagens combinadas`,
+            );
+          }
+
+          const result = await routeAndProcess({
+            instagram_username: username,
+            igsid,
+            message: combinedMessage,
+            thread_id: threadId,
+          });
+
+          const agentLabel = result.agent ?? 'nenhum';
+          if (result.shouldSend && result.message) {
+            const chunkCount = await sendChunkedMessage(igsid, result.message);
+            console.log(
+              `📤 [${username}] (${agentLabel}, ${chunkCount} chunks${count > 1 ? `, ${count}msgs` : ''}): ${result.message.slice(0, 80)}...`,
+            );
+          } else {
+            console.log(`⏭️  [${username}] (${agentLabel}) skip: ${result.skipReason}`);
+          }
+        });
       } catch (err: any) {
         console.error(`❌ erro processando IGSID ${igsid}:`, err.message);
       }
@@ -320,9 +338,11 @@ export { mastra };
 
 // ─── Boot ──────────────────────────────────────────────────────────────────
 serve({ fetch: app.fetch, port: PORT }, (info) => {
+  const buf = getBufferStats();
   console.log(`🚀 Webhook server (unified): http://localhost:${info.port}`);
   console.log(`   GET  /webhook/instagram  (verify)`);
   console.log(`   POST /webhook/instagram  (Meta direto)`);
   console.log(`   POST /agent/process       (orquestradores externos)`);
   console.log(`   Agentes registrados: socialiaAgent, sessaoAgent`);
+  console.log(`   Buffer de mensagens: ${buf.bufferWindowMs}ms (anti-resposta-duplicada)`);
 });
