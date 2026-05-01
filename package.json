@@ -1,0 +1,52 @@
+{
+  "name": "agent-avos-unified",
+  "version": "1.0.0",
+  "description": "Mastra unificado: SocialIA SDR + Sessão Estratégica em um único processo, roteamento por whitelist Postgres",
+  "type": "module",
+  "scripts": {
+    "dev": "mastra dev",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "webhook": "npx ts-node src/server.ts",
+
+    "find-ids": "npx ts-node scripts/find-crm-ids.ts",
+    "test:api": "npx ts-node scripts/test-api.ts",
+
+    "pause": "npx ts-node scripts/pause-agent.ts",
+    "resume": "npx ts-node scripts/resume-agent.ts",
+    "paused": "npx ts-node scripts/pause-agent.ts --list",
+    "test:hitl": "npx ts-node scripts/test-agent-control.ts",
+    "test:routing": "npx ts-node scripts/test-routing.ts",
+
+    "setup:socialia": "npx ts-node scripts/setup-socialia.ts",
+    "setup:sessao": "npx ts-node scripts/setup-sessao.ts",
+    "setup:all": "npm run setup:socialia && npm run setup:sessao",
+
+    "test:meta-flow": "npx ts-node scripts/test-meta-flow.ts",
+    "test:meta-token": "npx ts-node scripts/test-meta-token.ts",
+    "check:meta": "npx ts-node scripts/check-meta-config.ts",
+
+    "google:auth": "npx ts-node scripts/get-google-refresh-token.ts",
+    "test:calendar": "npx ts-node scripts/test-google-calendar.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^1.2.12",
+    "@ai-sdk/openai": "^3.0.53",
+    "@hono/node-server": "^2.0.0",
+    "@mastra/core": "^1.25.0",
+    "@mastra/libsql": "^1.8.1",
+    "@mastra/memory": "^1.15.1",
+    "@mastra/pg": "^1.9.1",
+    "@types/pg": "^8.20.0",
+    "dotenv": "^17.4.2",
+    "googleapis": "^144.0.0",
+    "hono": "^4.12.15",
+    "pg": "^8.20.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "mastra": "^1.6.0",
+    "typescript": "^5.8.3"
+  }
+}
