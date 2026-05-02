@@ -19,7 +19,6 @@
     "test:hitl": "tsx --env-file=.env scripts/test-agent-control.ts",
     "test:routing": "tsx --env-file=.env scripts/test-routing.ts",
     "diagnose:memory": "tsx --env-file=.env scripts/diagnose-memory.ts",
-    "move-lead": "tsx --env-file=.env scripts/move-lead.ts",
 
     "setup:socialia": "tsx --env-file=.env scripts/setup-socialia.ts",
     "setup:sessao": "tsx --env-file=.env scripts/setup-sessao.ts",
