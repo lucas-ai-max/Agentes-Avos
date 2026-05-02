@@ -14,29 +14,40 @@ const consultarSchema = z.object({
 export const consultarDisponibilidadeTool = createTool({
   id: 'consultar_disponibilidade',
   description:
-    'Lista horarios livres no Google Calendar para a Sessao Estrategica nos proximos dias uteis ' +
-    '(janela 10h-19h, duracao definida em SESSAO_DURACAO_MIN). Retorna sempre uma opcao de manha ' +
-    'e uma de tarde quando possivel — use os campos `manha` e `tarde` direto na mensagem ao lead. ' +
-    'Default: 3 dias a frente.',
+    'Lista TODOS os horarios livres no Google Calendar para a Sessao Estrategica nos proximos dias uteis ' +
+    '(janela 10h-19h horario de Sao Paulo, seg-sex, duracao definida em SESSAO_DURACAO_MIN). ' +
+    'Retorna ate 6 opcoes de manha e 6 de tarde, distribuidas pelos proximos dias. ' +
+    'Use o campo `slots[]` (lista combinada ordenada por horario) ou `manha`/`tarde` (separados por periodo) ' +
+    'pra oferecer 2-3 opcoes diversificadas ao lead — NAO ofereca sempre 10:00 e 12:00, ' +
+    'pega slots variados (ex: 11:30 amanha, 14:00 quinta, 16:30 sexta). ' +
+    'Default: 5 dias a frente.',
   inputSchema: consultarSchema,
   execute: async (inputData: Record<string, any>) => {
-    const dias = inputData.dias_a_frente ?? 3;
+    const dias = inputData.dias_a_frente ?? 5;
     const from = new Date();
     const to = new Date(from.getTime() + dias * 24 * 60 * 60_000);
 
     const [manha, tarde] = await Promise.all([
-      listFreeSlots({ from, to, limit: 1, preferPeriod: 'manha' }),
-      listFreeSlots({ from, to, limit: 1, preferPeriod: 'tarde' }),
+      listFreeSlots({ from, to, limit: 6, preferPeriod: 'manha' }),
+      listFreeSlots({ from, to, limit: 6, preferPeriod: 'tarde' }),
     ]);
 
+    // Lista combinada ordenada cronologicamente — útil quando o agente quer
+    // só oferecer "as próximas 3 opções" sem se preocupar com período.
+    const slots = [...manha, ...tarde].sort(
+      (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
+    );
+
     return {
-      encontrado: manha.length > 0 || tarde.length > 0,
-      manha: manha[0] ?? null,
-      tarde: tarde[0] ?? null,
+      encontrado: slots.length > 0,
+      total: slots.length,
+      slots,
+      manha,
+      tarde,
       mensagem:
-        manha.length > 0 || tarde.length > 0
-          ? 'Use as opcoes manha/tarde na mensagem ao lead.'
-          : 'Nenhum horario livre nos proximos dias. Sugira ampliar a janela.',
+        slots.length > 0
+          ? `${slots.length} horarios livres encontrados. Escolha 2-3 variados (em dias e horarios diferentes) pra oferecer.`
+          : 'Nenhum horario livre nos proximos dias. Sugira ampliar a janela aumentando dias_a_frente.',
     };
   },
 });

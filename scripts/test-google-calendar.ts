@@ -23,17 +23,19 @@ async function main() {
   console.log('🧪 Testando Google Calendar\n');
 
   // ─── 1) listFreeSlots ────────────────────────────────────────────────────
-  console.log('1) Listando horarios livres nos proximos 3 dias uteis...');
+  console.log('1) Listando horarios livres nos proximos 5 dias uteis...');
   const from = new Date();
   const to = new Date(from.getTime() + 5 * 24 * 60 * 60_000);
 
   const [manha, tarde] = await Promise.all([
-    listFreeSlots({ from, to, limit: 1, preferPeriod: 'manha' }),
-    listFreeSlots({ from, to, limit: 1, preferPeriod: 'tarde' }),
+    listFreeSlots({ from, to, limit: 6, preferPeriod: 'manha' }),
+    listFreeSlots({ from, to, limit: 6, preferPeriod: 'tarde' }),
   ]);
 
-  console.log('   Manha:', manha[0] ? `${manha[0].label} (${manha[0].start})` : 'nenhum');
-  console.log('   Tarde:', tarde[0] ? `${tarde[0].label} (${tarde[0].start})` : 'nenhum');
+  console.log(`   Manha (${manha.length} slots):`);
+  manha.forEach((s) => console.log(`     • ${s.label}  (${s.start})`));
+  console.log(`   Tarde (${tarde.length} slots):`);
+  tarde.forEach((s) => console.log(`     • ${s.label}  (${s.start})`));
 
   if (!manha[0] && !tarde[0]) {
     throw new Error('Nenhum horario livre encontrado — agenda completamente lotada nos proximos dias?');
@@ -42,6 +44,7 @@ async function main() {
   // ─── 2) createEvent ──────────────────────────────────────────────────────
   // Pega o primeiro slot livre (manha de preferencia, senao tarde)
   const slotEscolhido = manha[0] ?? tarde[0];
+  if (!slotEscolhido) throw new Error('sem slot pra criar evento de teste');
   console.log(`\n2) Criando evento de teste em ${slotEscolhido.label}...`);
 
   const evento = await createEvent({
