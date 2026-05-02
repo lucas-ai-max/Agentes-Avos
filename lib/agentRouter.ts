@@ -107,13 +107,16 @@ export async function routeAndProcess(payload: RoutePayload): Promise<RouteResul
       });
 
       // Mastra v1.25: memory options ficam dentro de `memory: { thread, resource }`.
-      // O formato antigo `threadId`/`resourceId` é deprecated e silenciosamente ignorado
-      // pelo novo `generate()` — bug que faz o agente nunca persistir thread.
+      // O formato antigo `threadId`/`resourceId` é deprecated e silenciosamente ignorado.
+      // maxSteps é necessário porque agentes chamam tools obrigatórias antes
+      // de responder (check_agent_status, get_prospect_info, etc.) — sem isso
+      // o loop pode parar após a tool call sem gerar texto final.
       const out: any = await mastra.getAgent(agentName).generate(augmented, {
         memory: {
           thread: tid,
           resource: payload.igsid ?? payload.instagram_username,
         },
+        maxSteps: 10,
       } as any);
 
       return extractText(out);
