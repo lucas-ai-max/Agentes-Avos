@@ -27,6 +27,7 @@ import { setIgsidCache as cacheSessao } from '../lib/sessao/igsidCacheClient.js'
 import { pauseAgentFor as pauseSocialia } from '../lib/socialia/agentControlClient.js';
 import { pauseAgentFor as pauseSessao } from '../lib/sessao/agentControlClient.js';
 import { bufferIncomingMessage, cancelBuffer, getBufferStats } from '../lib/shared/messageBuffer.js';
+import { isDuplicateMid } from '../lib/shared/messageDedup.js';
 
 const HUMAN_TAKEOVER_PAUSE_MS = Number(
   process.env.HUMAN_TAKEOVER_PAUSE_MS ?? 24 * 60 * 60 * 1000,
@@ -271,7 +272,14 @@ async function processPayload(payload: any): Promise<void> {
 
       const igsid = ev.sender?.id;
       const text = ev.message.text;
+      const mid = ev.message?.mid;
       if (!igsid) continue;
+
+      // Deduplicação por mid: ignora se Meta reentregou o mesmo webhook
+      if (isDuplicateMid(mid)) {
+        console.log(`🔁 [${igsid}] mid duplicado ignorado: ${mid}`);
+        continue;
+      }
 
       try {
         const resolved = await resolveUsername(igsid);
