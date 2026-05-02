@@ -80,17 +80,20 @@ export async function listFreeSlots(opts: {
   }
 
   while (cursor.getTime() < opts.to.getTime() && slots.length < limit) {
-    const day = cursor.getDay();
-    const hour = cursor.getHours();
+    // Janela seg-sex 10h-19h é avaliada SEMPRE em GOOGLE_CALENDAR_TIMEZONE
+    // (default America/Sao_Paulo) — independente do TZ da VPS. Sem isso, uma
+    // VPS rodando em UTC ou CEST oferece slot 5h da manhã horário SP.
+    const { day, hour } = getDayAndHourInTz(cursor, timezone);
     const slotStart = cursor.getTime();
     const slotEnd = slotStart + slotMs;
+    const { hour: endHour } = getDayAndHourInTz(new Date(slotEnd), timezone);
 
     const dentroJanela =
       day >= 1 &&
       day <= 5 &&
       hour >= horarioInicio &&
       hour < horarioFim &&
-      new Date(slotEnd).getHours() <= horarioFim;
+      endHour <= horarioFim;
 
     const periodoOk =
       opts.preferPeriod === 'manha'
@@ -113,6 +116,35 @@ export async function listFreeSlots(opts: {
   }
 
   return slots;
+}
+
+/**
+ * Extrai dia da semana (0=dom..6=sáb) e hora (0..23) de uma Date NO timezone
+ * informado, independente do TZ do processo. Usa Intl.DateTimeFormat.
+ */
+function getDayAndHourInTz(d: Date, tz: string): { day: number; hour: number } {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    weekday: 'short',
+    hour: '2-digit',
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(d);
+  const weekday = parts.find((p) => p.type === 'weekday')?.value;
+  const hourStr = parts.find((p) => p.type === 'hour')?.value;
+  // Em hour12=false, hour pode vir como "24" pra meia-noite — normaliza
+  let hour = Number(hourStr);
+  if (hour === 24) hour = 0;
+  const dayMap: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+  return { day: dayMap[weekday ?? 'Sun'] ?? 0, hour };
 }
 
 function formatLabel(d: Date, tz: string): string {
