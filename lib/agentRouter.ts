@@ -119,7 +119,33 @@ export async function routeAndProcess(payload: RoutePayload): Promise<RouteResul
         maxSteps: 10,
       } as any);
 
-      return extractText(out);
+      const text = extractText(out);
+
+      // Debug: se vier vazio, loga a estrutura do output pra diagnose
+      if (!text || !text.trim()) {
+        console.warn(`⚠️  [${agentName}] generate() retornou texto vazio. Estrutura:`);
+        console.warn(`   keys: ${Object.keys(out ?? {}).join(', ')}`);
+        console.warn(`   text="${out?.text}"  finishReason=${out?.finishReason}`);
+        console.warn(`   steps=${out?.steps?.length}  toolCalls=${out?.toolCalls?.length}`);
+        try {
+          const lastStep = out?.steps?.[out.steps.length - 1];
+          console.warn(`   lastStep keys: ${lastStep ? Object.keys(lastStep).join(',') : 'none'}`);
+          console.warn(`   lastStep.text="${lastStep?.text}"`);
+          console.warn(`   response keys: ${Object.keys(out?.response ?? {}).join(',')}`);
+          const msgs = out?.response?.messages;
+          console.warn(`   response.messages length: ${msgs?.length}`);
+          if (msgs?.length) {
+            const last = msgs[msgs.length - 1];
+            console.warn(`   last message role=${last?.role}`);
+            console.warn(`   last message content type: ${Array.isArray(last?.content) ? 'array' : typeof last?.content}`);
+            console.warn(`   last message content preview: ${JSON.stringify(last?.content)?.slice(0, 300)}`);
+          }
+        } catch (e: any) {
+          console.warn(`   debug err: ${e?.message}`);
+        }
+      }
+
+      return text;
     },
   );
 
