@@ -18,6 +18,7 @@
     "paused": "tsx --env-file=.env scripts/pause-agent.ts --list",
     "test:hitl": "tsx --env-file=.env scripts/test-agent-control.ts",
     "test:routing": "tsx --env-file=.env scripts/test-routing.ts",
+    "diagnose:memory": "tsx --env-file=.env scripts/diagnose-memory.ts",
 
     "setup:socialia": "tsx --env-file=.env scripts/setup-socialia.ts",
     "setup:sessao": "tsx --env-file=.env scripts/setup-sessao.ts",
