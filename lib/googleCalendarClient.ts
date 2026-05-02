@@ -41,6 +41,9 @@ export async function listFreeSlots(opts: {
   to: Date;
   limit?: number;
   preferPeriod?: 'manha' | 'tarde' | 'qualquer';
+  /** Espaçamento mínimo entre slots retornados (em ms). Default: 90min.
+   *  Evita oferecer 4 horários consecutivos do mesmo dia. */
+  minSpacingMs?: number;
 }): Promise<FreeSlot[]> {
   const cal = getCalendar();
   const calendarId = process.env.GOOGLE_CALENDAR_ID ?? 'primary';
@@ -66,6 +69,7 @@ export async function listFreeSlots(opts: {
   const slots: FreeSlot[] = [];
   const limit = opts.limit ?? 6;
   const slotMs = duracaoMin * 60_000;
+  const minSpacingMs = opts.minSpacingMs ?? 90 * 60_000; // 90min default
 
   const cursor = new Date(opts.from.getTime());
   cursor.setSeconds(0, 0);
@@ -105,11 +109,19 @@ export async function listFreeSlots(opts: {
     if (dentroJanela && periodoOk) {
       const collide = busy.some((b) => slotStart < b.end && slotEnd > b.start);
       if (!collide) {
-        slots.push({
-          start: new Date(slotStart).toISOString(),
-          end: new Date(slotEnd).toISOString(),
-          label: formatLabel(new Date(slotStart), timezone),
-        });
+        // Espaçamento: só inclui se >= minSpacingMs depois do último incluido NO MESMO DIA
+        const last = slots[slots.length - 1];
+        const sameDayAsLast =
+          last && new Date(last.start).toDateString() === new Date(slotStart).toDateString();
+        const tooClose = sameDayAsLast && slotStart - new Date(last.start).getTime() < minSpacingMs;
+
+        if (!tooClose) {
+          slots.push({
+            start: new Date(slotStart).toISOString(),
+            end: new Date(slotEnd).toISOString(),
+            label: formatLabel(new Date(slotStart), timezone),
+          });
+        }
       }
     }
     cursor.setMinutes(cursor.getMinutes() + 30);
