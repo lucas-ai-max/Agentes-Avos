@@ -15,7 +15,7 @@ import {
   createEvent,
   deleteEvent,
   isSlotFree,
-} from './lib/googleCalendarClient.ts';
+} from '../lib/googleCalendarClient.js';
 
 const TEST_EMAIL = process.env.GOOGLE_TEST_ATTENDEE ?? 'neuronexdigital@gmail.com';
 
