@@ -106,10 +106,14 @@ export async function routeAndProcess(payload: RoutePayload): Promise<RouteResul
         message: msg,
       });
 
+      // Mastra v1.25: memory options ficam dentro de `memory: { thread, resource }`.
+      // O formato antigo `threadId`/`resourceId` é deprecated e silenciosamente ignorado
+      // pelo novo `generate()` — bug que faz o agente nunca persistir thread.
       const out: any = await mastra.getAgent(agentName).generate(augmented, {
-        threadId: tid,
-        resourceId: payload.igsid ?? payload.instagram_username,
-        maxSteps: 10,
+        memory: {
+          thread: tid,
+          resource: payload.igsid ?? payload.instagram_username,
+        },
       } as any);
 
       return extractText(out);
